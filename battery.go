@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/csv"
+	"github.com/frankywahl/battery/datapoint"
 	"log"
 	"os"
 	"os/exec"
@@ -10,9 +11,27 @@ import (
 	"time"
 )
 
+type Observer interface {
+	Update() bool
+}
+
+type Observable interface {
+	AddObserver(o Observer)
+	Observers []Observers
+}
+
+func (observable *Observable) NotifyObserver() {
+	for _, observer := range observable.observers {
+		observer.Update(observable)
+	}
+}
+
 func main() {
 	now := time.Now()
 	percentage := "101%"
+
+	datapoint := datapoint.New()
+	log.Println(datapoint.Percentage)
 
 	//WriteHeaders("results.csv")
 	cmd := exec.Command("pmset", "-g", "batt")
@@ -29,8 +48,9 @@ func main() {
 	if matched != percentage {
 		percentage = matched
 
-		AppendRestults(now, time.Now(), percentage)
+		//AppendRestults(now, time.Now(), percentage)
 	}
+	log.Println(now)
 }
 
 func WriteHeaders(filename string) {
@@ -46,9 +66,12 @@ func WriteHeaders(filename string) {
 
 }
 
-func AppendResults(filename, startTime, currentTime, percentage) {
+func AppendResults(filename string, startTime time.Time, currentTime time.Time, percentage int) {
 	file, err := os.Create(filename)
 	defer file.Close()
 	writer := csv.NewWriter(file)
 	defer writer.Flush()
+	if err != nil {
+		log.Println("Error: ", err)
+	}
 }
